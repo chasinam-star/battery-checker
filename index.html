@@ -608,6 +608,10 @@ function analyze(){
   if(!txt.trim()){alert('메일 또는 MSDS 내용을 붙여넣어 주세요.');return;}
   const norm = txt.replace(/\s+/g,' ');
 
+  // 이전 분석 값 초기화 (연속 분석 시 잔존값으로 인한 오판정 방지)
+  ['unNo','volt','mah','cellWh','totalWh','liG','origin','un383','special'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('used').value='no';
+
   // UN number
   const unMatch = norm.match(/UN\s*\.?\s*(?:No\.?|Number)?\s*:?\s*(3480|3481|3090|3091|3171|3536)/i)
                 || norm.match(/(?:^|\s|\()(3480|3481|3090|3091|3171|3536)(?:\s|\)|,|$)/);
@@ -646,10 +650,14 @@ function analyze(){
   if(liMatch){document.getElementById('liG').value = liMatch[1];}
 
   // 제조사 (국내/해외 판단)
-  const domesticKeywords = /(국내|한국|LG에너지솔루션|LG\s*Energy|삼성SDI|Samsung\s*SDI|SK온|SK\s*On|현대|기아|LS|코캄|Kokam|에코프로|EcoPro|포스코|POSCO)/i;
-  const foreignKeywords = /(중국|China|일본|Japan|미국|USA|BYD|CATL|Panasonic|Tesla|Sony|Murata)/i;
-  if(domesticKeywords.test(norm)){document.getElementById('origin').value='domestic';}
-  else if(foreignKeywords.test(norm)){document.getElementById('origin').value='foreign';}
+  const domesticKeywords = /(국내|한국|\bKorea\b|LG\s*에너지솔루션|\bLG\s*Energy|삼성\s*SDI|\bSamsung\s*SDI\b|SK\s*온|\bSK\s*On\b|현대|기아|코캄|\bKokam\b|에코프로|\bEcoPro\b|포스코|\bPOSCO\b)/i;
+  const domesticCaseSensitive = /\bLS\s*(전선|엠트론|일렉트릭|Cable|Mtron|Electric)?\b/; // 'cells' 등 오탐 방지: 대문자 LS만
+  const foreignKeywords = /(중국|\bChina\b|일본|\bJapan\b|미국|\bUSA\b|\bBYD\b|\bCATL\b|\bPanasonic\b|\bTesla\b|\bSony\b|\bMurata\b|\bEVE\b|\bGotion\b)/i;
+  const isDom = domesticKeywords.test(norm) || domesticCaseSensitive.test(norm);
+  const isFor = foreignKeywords.test(norm);
+  if(isDom && !isFor){document.getElementById('origin').value='domestic';}
+  else if(isFor && !isDom){document.getElementById('origin').value='foreign';}
+  // 둘 다 해당되면 미선택 → '제조사 확인 필요'로 판정
 
   // UN 38.3
   if(/UN\s*38\.?3.{0,30}(보유|있음|available|yes|확인)/i.test(norm)){document.getElementById('un383').value='yes';}
