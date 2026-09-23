@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>리튬 배터리 선적 판정 도구 | 장금상선·흥아라인</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a;
+    --panel:#ffffff;
+    --muted:#64748b;
+    --text:#0f172a;
+    --border:#e2e8f0;
+    --accent:#1e40af;
+    --accent-2:#2563eb;
+    --ok:#15803d;
+    --ok-bg:#dcfce7;
+    --warn:#b45309;
+    --warn-bg:#fef3c7;
+    --bad:#b91c1c;
+    --bad-bg:#fee2e2;
+    --info:#0369a1;
+    --info-bg:#e0f2fe;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:linear-gradient(135deg,#1e3a8a 0%,#0f172a 100%);
+    min-height:100vh;
+    color:var(--text);
+    padding:24px 16px;
+  }
+  .wrap{max-width:1100px;margin:0 auto}
+  header{
+    color:#fff;
+    text-align:center;
+    margin-bottom:24px;
+  }
+  header h1{
+    margin:0 0 6px;
+    font-size:26px;
+    letter-spacing:-0.5px;
+  }
+  header p{margin:0;color:#cbd5e1;font-size:14px}
+  .grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:20px;
+  }
+  @media (max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{
+    background:var(--panel);
+    border-radius:14px;
+    padding:22px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15);
+  }
+  .card h2{
+    margin:0 0 14px;
+    font-size:17px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .card h2 .num{
+    background:var(--accent);
+    color:#fff;
+    width:24px;height:24px;
+    border-radius:50%;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    font-size:13px;
+    font-weight:600;
+  }
+  textarea{
+    width:100%;
+    min-height:180px;
+    max-height:300px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px;
+    font-family:inherit;
+    font-size:13px;
+    resize:vertical;
+    line-height:1.5;
+  }
+  textarea:focus{outline:none;border-color:var(--accent-2);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+  button{
+    background:var(--accent);
+    color:#fff;
+    border:none;
+    padding:11px 18px;
+    border-radius:8px;
+    font-size:14px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s;
+  }
+  button:hover{background:var(--accent-2)}
+  button.ghost{
+    background:#f1f5f9;
+    color:var(--text);
+  }
+  button.ghost:hover{background:#e2e8f0}
+  .fields{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:8px;
+  }
+  .field label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:4px;
+    font-weight:500;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--border);
+    border-radius:6px;
+    font-size:13px;
+    font-family:inherit;
+  }
+  .field input:focus,.field select:focus{outline:none;border-color:var(--accent-2)}
+  .hint{font-size:11px;color:var(--muted);margin-top:4px}
+  .verdict{
+    border-radius:10px;
+    padding:16px;
+    margin-bottom:14px;
+  }
+  .verdict.ok{background:var(--ok-bg);border-left:4px solid var(--ok)}
+  .verdict.warn{background:var(--warn-bg);border-left:4px solid var(--warn)}
+  .verdict.bad{background:var(--bad-bg);border-left:4px solid var(--bad)}
+  .verdict h3{margin:0 0 6px;font-size:15px}
+  .verdict.ok h3{color:var(--ok)}
+  .verdict.warn h3{color:var(--warn)}
+  .verdict.bad h3{color:var(--bad)}
+  .verdict p{margin:0;font-size:13px;line-height:1.55}
+  .badge{
+    display:inline-block;
+    padding:3px 9px;
+    border-radius:12px;
+    font-size:11px;
+    font-weight:600;
+    margin-right:6px;
+  }
+  .badge.dg{background:#fee2e2;color:#b91c1c}
+  .badge.nondg{background:#dcfce7;color:#15803d}
+  .badge.sp188{background:#e0f2fe;color:#0369a1}
+  .reasoning{
+    background:#f8fafc;
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+    margin-bottom:14px;
+    font-size:13px;
+    line-height:1.6;
+  }
+  .reasoning h4{
+    margin:0 0 8px;
+    font-size:13px;
+    color:var(--accent);
+  }
+  .reasoning .calc{
+    background:#fff;
+    padding:8px 10px;
+    border-radius:6px;
+    font-family:"SF Mono","Consolas",monospace;
+    font-size:12px;
+    margin:6px 0;
+    border:1px solid var(--border);
+  }
+  .checklist{
+    background:#fffbeb;
+    border:1px solid #fde68a;
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .checklist h4{
+    margin:0 0 10px;
+    font-size:13px;
+    color:#92400e;
+  }
+  .checklist ul{margin:0;padding-left:20px;font-size:13px;line-height:1.7}
+  .checklist li{margin-bottom:4px}
+  .placeholder{
+    text-align:center;
+    color:var(--muted);
+    padding:60px 20px;
+    font-size:13px;
+  }
+  .placeholder svg{margin-bottom:8px;opacity:.4}
+  .extracted{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin:10px 0 14px;
+  }
+  .chip{
+    background:#f1f5f9;
+    padding:5px 11px;
+    border-radius:14px;
+    font-size:12px;
+    color:var(--text);
+  }
+  .chip strong{color:var(--accent);margin-right:4px}
+  .sample-btns{margin-top:10px}
+  .sample-btns button{
+    background:#f8fafc;
+    color:var(--muted);
+    font-size:11px;
+    padding:6px 10px;
+    border:1px solid var(--border);
+    font-weight:500;
+  }
+  .sample-btns button:hover{background:#f1f5f9;color:var(--text)}
+  details{margin-top:14px;font-size:12px;color:var(--muted)}
+  details summary{cursor:pointer;font-weight:500}
+  details .ref{margin-top:8px;padding:10px;background:#f8fafc;border-radius:6px;font-size:12px;line-height:1.6}
+  .dropzone{
+    border:2px dashed #cbd5e1;
+    border-radius:10px;
+    padding:18px;
+    text-align:center;
+    cursor:pointer;
+    background:#f8fafc;
+    transition:all .15s;
+    margin-bottom:12px;
+  }
+  .dropzone:hover, .dropzone.drag{
+    border-color:var(--accent-2);
+    background:#eff6ff;
+  }
+  .dropzone svg{color:var(--accent);margin-bottom:4px}
+  .dropzone .main{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+  .dropzone .sub{font-size:11px;color:var(--muted)}
+  .dropzone input[type=file]{display:none}
+  .file-status{
+    display:none;
+    margin-bottom:12px;
+    padding:10px 12px;
+    border-radius:8px;
+    font-size:12px;
+    align-items:center;
+    gap:8px;
+  }
+  .file-status.show{display:flex}
+  .file-status.processing{background:#e0f2fe;color:#0369a1}
+  .file-status.success{background:#dcfce7;color:#15803d}
+  .file-status.error{background:#fee2e2;color:#b91c1c}
+  .spinner{
+    width:14px;height:14px;
+    border:2px solid currentColor;
+    border-right-color:transparent;
+    border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .booking-toggle{
+    display:flex;
+    background:#f1f5f9;
+    border-radius:8px;
+    padding:3px;
+    margin-bottom:14px;
+  }
+  .booking-toggle button{
+    flex:1;
+    background:transparent;
+    color:var(--muted);
+    font-size:12px;
+    padding:7px;
+    border-radius:6px;
+    font-weight:600;
+  }
+  .booking-toggle button.active{
+    background:#fff;
+    color:var(--accent);
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>리튬 배터리 선적 판정 도구</h1>
+    <p>장금상선 · 흥아라인 SKR/HAS 규정 기준 | 화주 MSDS·이메일 자동 분석</p>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: INPUT -->
+    <div class="card">
+      <h2><span class="num">1</span>MSDS 파일 업로드 또는 메일 붙여넣기</h2>
+
+      <label class="dropzone" id="dropzone" for="fileInput">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div class="main">MSDS PDF 파일 끌어다 놓기 또는 클릭하여 선택</div>
+        <div class="sub">PDF, TXT 파일 지원 · 여러 파일 동시 업로드 가능</div>
+        <input type="file" id="fileInput" accept=".pdf,.txt,application/pdf,text/plain" multiple />
+      </label>
+
+      <div id="fileStatus" class="file-status"></div>
+
+      <textarea id="rawInput" placeholder="예시)
+안녕하세요. 다음 화물 부킹 가능 여부 확인 부탁드립니다.
+
+- 품목: 리튬이온 배터리
+- UN No.: UN3480
+- Voltage: 3.7V
+- Capacity: 5000mAh
+- Cells per battery: 4
+- Manufacturer: LG에너지솔루션 (국내 제조)
+- UN 38.3 Test Report: 보유
+
+감사합니다."></textarea>
+
+      <div class="sample-btns">
+        <button class="ghost" onclick="loadSample('sp188')">샘플: SP188 비위험물 (소형)</button>
+        <button class="ghost" onclick="loadSample('dg3480')">샘플: 위험물 3480</button>
+        <button class="ghost" onclick="loadSample('3090')">샘플: 리튬금속 3090</button>
+        <button class="ghost" onclick="loadSample('ev')">샘플: 전기차 3171</button>
+      </div>
+
+      <div class="row">
+        <button onclick="analyze()">자동 분석하기</button>
+        <button class="ghost" onclick="clearAll()">초기화</button>
+      </div>
+
+      <h2 style="margin-top:24px"><span class="num">2</span>추출된 정보 확인·수정</h2>
+      <p class="hint">자동 추출이 부정확할 경우 직접 수정 가능합니다.</p>
+      <div class="fields">
+        <div class="field">
+          <label>UN 번호</label>
+          <select id="unNo">
+            <option value="">-- 선택 --</option>
+            <option value="3480">UN3480 - 리튬이온 배터리(단독)</option>
+            <option value="3481">UN3481 - 리튬이온 배터리 장착 기기</option>
+            <option value="3090">UN3090 - 리튬금속 배터리(단독)</option>
+            <option value="3091">UN3091 - 리튬금속 배터리 장착 기기</option>
+            <option value="3171">UN3171 - 배터리 구동 차량/장비</option>
+            <option value="3536">UN3536 - 배터리 장착 컨테이너</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>전압 (V)</label>
+          <input type="number" id="volt" step="0.1" placeholder="예: 3.7"/>
+        </div>
+        <div class="field">
+          <label>용량 (mAh)</label>
+          <input type="number" id="mah" placeholder="예: 5000"/>
+        </div>
+        <div class="field">
+          <label>셀당 Wh (직접 입력 시)</label>
+          <input type="number" id="cellWh" step="0.01" placeholder="자동계산 또는 직접입력"/>
+        </div>
+        <div class="field">
+          <label>배터리당 Wh (총합)</label>
+          <input type="number" id="totalWh" step="0.01" placeholder="자동계산 또는 직접입력"/>
+        </div>
+        <div class="field">
+          <label>리튬 함량 (g/셀) - 금속배터리만</label>
+          <input type="number" id="liG" step="0.01" placeholder="3090/3091만 해당"/>
+        </div>
+        <div class="field">
+          <label>제조사 (국내/해외)</label>
+          <select id="origin">
+            <option value="">-- 선택 --</option>
+            <option value="domestic">국내 제조사</option>
+            <option value="foreign">해외 제조사</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>UN 38.3 Test Report</label>
+          <select id="un383">
+            <option value="">-- 선택 --</option>
+            <option value="yes">보유</option>
+            <option value="no">미보유</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>중고품 여부</label>
+          <select id="used">
+            <option value="no">신품</option>
+            <option value="yes">중고품</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>특이사항 (EV/벌크포장 등)</label>
+          <select id="special">
+            <option value="">-- 해당없음 --</option>
+            <option value="ev">전기 자동차</option>
+            <option value="bulk">벌크식 포장</option>
+            <option value="mixed">타 위험물 혼적 예정</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:14px">
+        <button onclick="judge()">선적 판정하기</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: RESULT -->
+    <div class="card">
+      <h2><span class="num">3</span>판정 결과</h2>
+      <div class="booking-toggle">
+        <button id="tabSelf" class="active" onclick="switchTab('self')">자사 부킹 (장금/흥아선)</button>
+        <button id="tabOther" onclick="switchTab('other')">타사 부킹 (타사선)</button>
+      </div>
+
+      <div id="result">
+        <div class="placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+          <div>왼쪽에 메일/MSDS를 붙여넣고<br/>「자동 분석하기」를 눌러주세요.</div>
+        </div>
+      </div>
+
+      <details>
+        <summary>SKR/HAS 규정 요약 보기</summary>
+        <div class="ref">
+          <strong>UN3480/3481 (리튬이온)</strong><br/>
+          · 위험물: 타사 부킹 <b>선적 금지</b> / 자사 RF DG (국내 제조사만)<br/>
+          · SP188 비위험물 (셀당 &lt;20Wh AND 배터리 &lt;100Wh): NON-DG DRY 선적 가능<br/><br/>
+          <strong>UN3090/3091 (리튬금속)</strong><br/>
+          · 위험물/비위험물 무관 <b>전면 선적 금지</b><br/><br/>
+          <strong>UN3171 (배터리 구동 차량/장비)</strong><br/>
+          · 타사: 금지 / 자사: 전기차 금지, 그 외는 배터리 분리 시 가능<br/><br/>
+          <strong>UN3536 (배터리 장착 컨테이너)</strong><br/>
+          · 자사/타사 모두 <b>선적 금지</b><br/><br/>
+          <strong>공통 조건</strong><br/>
+          · UN 38.3 Test Report 필수 / 중고품·벌크포장·타 위험물 혼적 불가<br/>
+          · IMDG CODE 포장지침 준수 / 자동승인 불가, 운항 담당자 승인 필요
+        </div>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+// PDF.js 워커 설정
+if(window.pdfjsLib){
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+let currentTab = 'self';
+
+// ===== 파일 업로드 처리 =====
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const fileStatus = document.getElementById('fileStatus');
+
+['dragenter','dragover'].forEach(ev=>{
+  dropzone.addEventListener(ev, e=>{e.preventDefault();dropzone.classList.add('drag');});
+});
+['dragleave','drop'].forEach(ev=>{
+  dropzone.addEventListener(ev, e=>{e.preventDefault();dropzone.classList.remove('drag');});
+});
+dropzone.addEventListener('drop', e=>{
+  e.preventDefault();
+  if(e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e=>{
+  if(e.target.files.length) handleFiles(e.target.files);
+});
+
+function setStatus(type, html){
+  fileStatus.className = 'file-status show '+type;
+  fileStatus.innerHTML = html;
+}
+
+async function handleFiles(files){
+  const arr = Array.from(files);
+  setStatus('processing', `<div class="spinner"></div><span>${arr.length}개 파일 분석 중...</span>`);
+  let combined = '';
+  let okCount = 0, errFiles = [];
+
+  for(const f of arr){
+    try{
+      let text = '';
+      if(f.type==='application/pdf' || f.name.toLowerCase().endsWith('.pdf')){
+        text = await extractPdfText(f);
+      } else if(f.type==='text/plain' || f.name.toLowerCase().endsWith('.txt')){
+        text = await f.text();
+      } else {
+        errFiles.push(f.name+' (지원하지 않는 형식)');
+        continue;
+      }
+      if(text.trim().length<10){
+        errFiles.push(f.name+' (텍스트 추출 실패 - 스캔 PDF일 수 있음)');
+        continue;
+      }
+      combined += `===== ${f.name} =====\n${text}\n\n`;
+      okCount++;
+    } catch(err){
+      errFiles.push(f.name+' ('+err.message+')');
+    }
+  }
+
+  if(combined){
+    document.getElementById('rawInput').value = combined;
+    let msg = `<span>✓ ${okCount}개 파일 텍스트 추출 완료. 자동 분석 실행 중...</span>`;
+    if(errFiles.length) msg += `<br/><span style="color:#b45309;font-size:11px">⚠ 실패: ${errFiles.join(', ')}</span>`;
+    setStatus('success', msg);
+    setTimeout(()=>{analyze();}, 200);
+  } else {
+    setStatus('error', `<span>✗ 텍스트 추출 실패: ${errFiles.join(', ')}</span><br/><span style="font-size:11px">스캔 이미지 PDF의 경우 텍스트로 다시 보내달라고 요청해주세요.</span>`);
+  }
+}
+
+async function extractPdfText(file){
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+  let text = '';
+  for(let i=1;i<=pdf.numPages;i++){
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items.map(it=>it.str).join(' ');
+    text += pageText + '\n';
+  }
+  return text;
+}
+
+const SAMPLES = {
+  sp188: `안녕하세요.
+다음 화물 부킹 가능 여부 확인 부탁드립니다.
+
+품목: 리튬이온 배터리팩 (보조배터리)
+UN No: UN3480
+정격전압: 3.7V
+용량: 4000mAh
+셀당 용량: 14.8Wh
+배터리 전체 정격: 59.2Wh
+제조사: 삼성SDI (국내)
+UN 38.3 Test Report 보유
+포장: 개별포장, 신품
+
+회신 부탁드립니다.`,
+  dg3480: `Dear Sales Team,
+
+부킹 요청드립니다.
+
+- Commodity: Lithium-ion Battery
+- UN Number: UN 3480
+- Voltage: 11.1V
+- Capacity: 10,000 mAh
+- Cells: 6 cells per battery
+- Manufacturer: BYD (China)
+- UN38.3 Report: Available
+- Packaging: Per IMDG CODE
+
+Please confirm shipping availability.`,
+  '3090': `안녕하세요.
+하기 화물 선적 문의드립니다.
+
+품목: 리튬 1차전지 (Primary Lithium Battery)
+UN No: UN 3091 (장비에 장착)
+배터리 종류: 리튬금속
+리튬함량: 0.5g per cell
+용도: 소방감지기용
+제조사: 국내 ABC전자
+UN 38.3 보유
+
+확인 부탁드립니다.`,
+  ev: `다음 화물 부킹 부탁드립니다.
+
+품목: 전기 승용차 (Electric Vehicle)
+UN No: UN3171
+배터리: 리튬이온 75kWh
+제조사: 현대자동차
+중고 여부: 신차`
+};
+
+function loadSample(key){
+  document.getElementById('rawInput').value = SAMPLES[key];
+  analyze();
+}
+
+function clearAll(){
+  document.getElementById('rawInput').value='';
+  document.getElementById('fileInput').value='';
+  fileStatus.className = 'file-status';
+  fileStatus.innerHTML = '';
+  ['unNo','volt','mah','cellWh','totalWh','liG','origin','un383','special'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('used').value='no';
+  document.getElementById('result').innerHTML = `<div class="placeholder">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="9" y1="15" x2="15" y2="15"/>
+    </svg>
+    <div>왼쪽에 메일/MSDS를 붙여넣고<br/>「자동 분석하기」를 눌러주세요.</div>
+  </div>`;
+}
+
+function analyze(){
+  const txt = document.getElementById('rawInput').value;
+  if(!txt.trim()){alert('메일 또는 MSDS 내용을 붙여넣어 주세요.');return;}
+  const norm = txt.replace(/\s+/g,' ');
+
+  // UN number
+  const unMatch = norm.match(/UN\s*\.?\s*(?:No\.?|Number)?\s*:?\s*(3480|3481|3090|3091|3171|3536)/i)
+                || norm.match(/(?:^|\s|\()(3480|3481|3090|3091|3171|3536)(?:\s|\)|,|$)/);
+  if(unMatch){document.getElementById('unNo').value = unMatch[1];}
+
+  // Voltage
+  const vMatch = norm.match(/(\d+(?:\.\d+)?)\s*(?:V\b|볼트|voltage[:\s]*)/i)
+              || norm.match(/(?:전압|voltage)\s*[:=]?\s*(\d+(?:\.\d+)?)/i);
+  if(vMatch){document.getElementById('volt').value = vMatch[1];}
+
+  // mAh / Ah
+  const mahMatch = norm.match(/([\d,]+(?:\.\d+)?)\s*mAh/i);
+  const ahMatch = norm.match(/([\d,]+(?:\.\d+)?)\s*Ah\b/i);
+  if(mahMatch){
+    document.getElementById('mah').value = mahMatch[1].replace(/,/g,'');
+  } else if(ahMatch){
+    document.getElementById('mah').value = parseFloat(ahMatch[1].replace(/,/g,''))*1000;
+  }
+
+  // Wh 직접 표기
+  const cellWhMatch = norm.match(/(?:셀\s*당|per\s*cell|cell)\s*[:=]?\s*([\d.]+)\s*Wh/i);
+  const totalWhMatch = norm.match(/(?:배터리|battery|전체|total|정격)\s*[^.]{0,15}?([\d.]+)\s*Wh/i);
+  const anyWhMatch = norm.match(/([\d.]+)\s*Wh/gi);
+  if(cellWhMatch){document.getElementById('cellWh').value = cellWhMatch[1];}
+  if(totalWhMatch){document.getElementById('totalWh').value = totalWhMatch[1];}
+
+  // kWh (EV용)
+  const kwhMatch = norm.match(/([\d.]+)\s*kWh/i);
+  if(kwhMatch && !totalWhMatch){
+    document.getElementById('totalWh').value = parseFloat(kwhMatch[1])*1000;
+  }
+
+  // 리튬 함량
+  const liMatch = norm.match(/(?:리튬\s*함량|lithium\s*content)\s*[:=]?\s*([\d.]+)\s*g/i)
+               || norm.match(/([\d.]+)\s*g\s*(?:per\s*cell|\/\s*cell|셀당)/i);
+  if(liMatch){document.getElementById('liG').value = liMatch[1];}
+
+  // 제조사 (국내/해외 판단)
+  const domesticKeywords = /(국내|한국|LG에너지솔루션|LG\s*Energy|삼성SDI|Samsung\s*SDI|SK온|SK\s*On|현대|기아|LS|코캄|Kokam|에코프로|EcoPro|포스코|POSCO)/i;
+  const foreignKeywords = /(중국|China|일본|Japan|미국|USA|BYD|CATL|Panasonic|Tesla|Sony|Murata)/i;
+  if(domesticKeywords.test(norm)){document.getElementById('origin').value='domestic';}
+  else if(foreignKeywords.test(norm)){document.getElementById('origin').value='foreign';}
+
+  // UN 38.3
+  if(/UN\s*38\.?3.{0,30}(보유|있음|available|yes|확인)/i.test(norm)){document.getElementById('un383').value='yes';}
+  else if(/UN\s*38\.?3.{0,30}(미보유|없음|없습|no|not)/i.test(norm)){document.getElementById('un383').value='no';}
+
+  // 중고품
+  if(/(중고|used|secondhand|second-hand)/i.test(norm)){document.getElementById('used').value='yes';}
+
+  // 특이사항
+  if(/(전기\s*(자동)?차|EV\b|electric\s*vehicle)/i.test(norm)){document.getElementById('special').value='ev';}
+  else if(/(벌크|bulk)/i.test(norm)){document.getElementById('special').value='bulk';}
+
+  // 자동 Wh 계산
+  autoCalcWh();
+
+  // 자동 판정 실행
+  judge();
+}
+
+function autoCalcWh(){
+  const v = parseFloat(document.getElementById('volt').value);
+  const mah = parseFloat(document.getElementById('mah').value);
+  const cellWh = document.getElementById('cellWh');
+  if(v && mah && !cellWh.value){
+    const wh = (v*mah/1000);
+    cellWh.value = wh.toFixed(2);
+  }
+}
+
+function switchTab(t){
+  currentTab = t;
+  document.getElementById('tabSelf').classList.toggle('active', t==='self');
+  document.getElementById('tabOther').classList.toggle('active', t==='other');
+  judge();
+}
+
+function judge(){
+  const un = document.getElementById('unNo').value;
+  const volt = parseFloat(document.getElementById('volt').value)||0;
+  const mah = parseFloat(document.getElementById('mah').value)||0;
+  let cellWh = parseFloat(document.getElementById('cellWh').value)||0;
+  let totalWh = parseFloat(document.getElementById('totalWh').value)||0;
+  const liG = parseFloat(document.getElementById('liG').value)||0;
+  const origin = document.getElementById('origin').value;
+  const un383 = document.getElementById('un383').value;
+  const used = document.getElementById('used').value;
+  const special = document.getElementById('special').value;
+
+  // 자동계산
+  if(!cellWh && volt && mah){cellWh = volt*mah/1000;}
+
+  if(!un){
+    document.getElementById('result').innerHTML = `<div class="verdict warn"><h3>UN 번호 미확인</h3><p>UN 번호가 식별되지 않았습니다. 화주에게 UN 번호와 MSDS·UN 38.3 Test Report 송부를 요청해 주세요.</p></div>`;
+    return;
+  }
+
+  // 추출 정보 칩
+  const chips = [];
+  chips.push(`<span class="chip"><strong>UN</strong>${un}</span>`);
+  if(volt) chips.push(`<span class="chip"><strong>V</strong>${volt}V</span>`);
+  if(mah) chips.push(`<span class="chip"><strong>용량</strong>${mah}mAh</span>`);
+  if(cellWh) chips.push(`<span class="chip"><strong>셀당</strong>${cellWh.toFixed(2)}Wh</span>`);
+  if(totalWh) chips.push(`<span class="chip"><strong>총합</strong>${totalWh}Wh</span>`);
+  if(liG) chips.push(`<span class="chip"><strong>Li</strong>${liG}g/셀</span>`);
+  if(origin) chips.push(`<span class="chip"><strong>제조</strong>${origin==='domestic'?'국내':'해외'}</span>`);
+  if(un383) chips.push(`<span class="chip"><strong>UN38.3</strong>${un383==='yes'?'O':'X'}</span>`);
+
+  let verdictHtml='';
+  let reasoningHtml='';
+  let checklistHtml='';
+
+  // ===== UN 3480 / 3481 (리튬이온) =====
+  if(un==='3480' || un==='3481'){
+    // SP188 비위험물 판정
+    const isSP188 = cellWh>0 && cellWh<20 && (
+      (totalWh>0 && totalWh<100) || (totalWh===0 && un==='3481')
+    );
+    const cellOk = cellWh>0 && cellWh<20;
+    const totalOk = totalWh>0 && totalWh<100;
+
+    if(cellWh>0 && cellOk && totalOk){
+      // SP188 비위험물 - 양쪽 다 선적 가능
+      verdictHtml = `<div class="verdict ok">
+        <h3>✓ 선적 가능 (NON-DG DRY)</h3>
+        <p><span class="badge sp188">SP188 비위험물</span> ${currentTab==='self'?'자사선':'타사선'} 모두 일반 DRY 컨테이너 선적 가능합니다.</p>
+      </div>`;
+      reasoningHtml = `<div class="reasoning">
+        <h4>판정 근거</h4>
+        <div class="calc">Wh 계산: ${volt}V × ${mah}mAh ÷ 1000 = <b>${cellWh.toFixed(2)} Wh/셀</b></div>
+        SP188 (IMDG CODE 특별규정) 적용 조건 충족:<br/>
+        · 셀당 Wh = ${cellWh.toFixed(2)}Wh &lt; 20Wh ✓<br/>
+        · 배터리당 Wh = ${totalWh}Wh &lt; 100Wh ✓<br/>
+        → 비위험물로 분류되어 NON-DG DRY 선적 가능
+      </div>`;
+    } else if(cellWh>0 && (!cellOk || !totalOk || totalWh===0)){
+      // 위험물
+      const isDomestic = origin==='domestic';
+      if(currentTab==='self'){
+        if(isDomestic){
+          verdictHtml = `<div class="verdict warn">
+            <h3>△ 자사선 RF DG 선적 가능 (조건부)</h3>
+            <p><span class="badge dg">위험물</span> 국내 제조사 배터리에 한해 RF DG로 선적 가능합니다. 운항 담당자 승인 필요.</p>
+          </div>`;
+        } else if(origin==='foreign'){
+          verdictHtml = `<div class="verdict bad">
+            <h3>✗ 선적 불가</h3>
+            <p><span class="badge dg">위험물</span> 해외 제조사 배터리는 자사선 RF DG 선적 불가입니다.</p>
+          </div>`;
+        } else {
+          verdictHtml = `<div class="verdict warn">
+            <h3>△ 제조사 확인 필요</h3>
+            <p><span class="badge dg">위험물</span> 국내 제조사인 경우에만 자사선 RF DG 선적 가능합니다. 화주에게 배터리 제조사 확인을 요청해주세요.</p>
+          </div>`;
+        }
+      } else {
+        verdictHtml = `<div class="verdict bad">
+          <h3>✗ 타사선 선적 불가</h3>
+          <p><span class="badge dg">위험물</span> 위험물 리튬이온 배터리는 타사선 부킹 불가. <b>자사선(장금/흥아) 부킹 변경 유도</b> 필요합니다.</p>
+        </div>`;
+      }
+      reasoningHtml = `<div class="reasoning">
+        <h4>위험물 판정 근거</h4>
+        <div class="calc">Wh 계산: ${volt?volt+'V × '+mah+'mAh ÷ 1000 = ':''}<b>${cellWh.toFixed(2)} Wh/셀</b></div>
+        SP188 비위험물 기준 미충족:<br/>
+        · 셀당 Wh = ${cellWh.toFixed(2)}Wh ${cellOk?'< 20Wh ✓':'≥ 20Wh ✗'}<br/>
+        · 배터리당 Wh = ${totalWh||'미확인'} ${totalOk?'< 100Wh ✓':'≥ 100Wh 또는 미확인 ✗'}<br/>
+        → 위 1개 조건이라도 미충족 시 <b>위험물</b>로 분류
+      </div>`;
+    } else {
+      verdictHtml = `<div class="verdict warn">
+        <h3>△ Wh 정보 부족</h3>
+        <p>셀당/배터리당 Wh 정보가 부족합니다. 위험·비위험 판단을 위해 화주에게 <b>UN 38.3 Test Report</b> 송부를 요청해 주세요.</p>
+      </div>`;
+    }
+
+    checklistHtml = `<div class="checklist">
+      <h4>✓ 선적 진행 전 확인사항</h4>
+      <ul>
+        <li>UN 38.3 Test Report 확인 ${un383==='yes'?'(보유 ✓)':un383==='no'?'(<b style="color:#b91c1c">미보유 - 화주 요청 필요</b>)':'(상태 미확인)'}</li>
+        <li>국내 배터리 제조사 여부 확인 ${origin==='domestic'?'(국내 ✓)':origin==='foreign'?'(해외 - 자사선 RF DG 불가)':'(미확인)'}</li>
+        <li>중고품 아님 ${used==='no'?'✓':'<b style="color:#b91c1c">(중고품 - 선적 불가)</b>'}</li>
+        <li>벌크식 포장 아님 ${special==='bulk'?'<b style="color:#b91c1c">(벌크 - 선적 불가)</b>':'✓'}</li>
+        <li>타 위험물과 혼적 없음 ${special==='mixed'?'<b style="color:#b91c1c">(혼적 - 불가)</b>':'✓'}</li>
+        <li>IMDG CODE 포장지침 준수 (화주 확인)</li>
+        <li><b>자동승인 불가</b> - 운항 담당자 선적 승인 후 진행</li>
+      </ul>
+    </div>`;
+  }
+
+  // ===== UN 3090 / 3091 (리튬금속) =====
+  else if(un==='3090' || un==='3091'){
+    verdictHtml = `<div class="verdict bad">
+      <h3>✗ 선적 전면 금지</h3>
+      <p><span class="badge dg">리튬금속</span> 리튬금속/합금 배터리는 위험물·비위험물 무관하게 <b>자사/타사 모두 선적 금지</b>입니다.</p>
+    </div>`;
+    reasoningHtml = `<div class="reasoning">
+      <h4>판정 근거</h4>
+      최근 공장 화재사고로 인하여 당사를 포함한 주요 선사가 리튬금속/합금 배터리(UN3090/3091)를 선적 금지 품목으로 지정.<br/>
+      ${liG>0?`<div class="calc">리튬함량: ${liG}g/셀 (SP188 기준 1g 미만이라도 선적 금지 적용)</div>`:''}
+      리튬이온(3480/3481)과 달리, SP188 비위험물 적용 가능 케이스도 <b>선적 불가</b>.
+    </div>`;
+    checklistHtml = `<div class="checklist">
+      <h4>✓ 화주 안내사항</h4>
+      <ul>
+        <li>리튬금속/합금 배터리 (UN3090/3091)는 전면 선적 금지 품목임을 화주에게 안내</li>
+        <li>대체 운송 수단(항공 등) 검토 권유</li>
+        <li>리튬이온 배터리(UN3480/3481)와 혼동 없도록 MSDS 재확인 요청</li>
+      </ul>
+    </div>`;
+  }
+
+  // ===== UN 3171 (배터리 구동 차량/장비) =====
+  else if(un==='3171'){
+    if(special==='ev'){
+      verdictHtml = `<div class="verdict bad">
+        <h3>✗ 전기 자동차 선적 불가</h3>
+        <p>전기 자동차(EV)는 자사/타사 모두 <b>선적 금지</b>입니다.</p>
+      </div>`;
+    } else if(currentTab==='self'){
+      verdictHtml = `<div class="verdict warn">
+        <h3>△ 자사선 조건부 가능 (배터리 분리 시)</h3>
+        <p>전기 자동차를 제외한 배터리 구동 장비는 <b>배터리 분리 후</b>에만 자사선 선적 가능합니다.</p>
+      </div>`;
+    } else {
+      verdictHtml = `<div class="verdict bad">
+        <h3>✗ 타사선 선적 불가</h3>
+        <p>UN3171 화물은 타사선 부킹 불가. 자사선 부킹 검토 필요합니다.</p>
+      </div>`;
+    }
+    checklistHtml = `<div class="checklist">
+      <h4>✓ 확인사항</h4>
+      <ul>
+        <li>전기 자동차 여부 확인 (전기차는 전면 금지)</li>
+        <li>자사선의 경우 배터리 분리 가능 여부 확인</li>
+        <li>분리된 배터리에 대해서는 UN3480/3481 규정 별도 적용</li>
+      </ul>
+    </div>`;
+  }
+
+  // ===== UN 3536 =====
+  else if(un==='3536'){
+    verdictHtml = `<div class="verdict bad">
+      <h3>✗ 선적 금지</h3>
+      <p>리튬이온/금속 배터리가 장착된 컨테이너(UN3536)는 자사/타사 모두 <b>선적 불가</b>합니다.</p>
+    </div>`;
+    checklistHtml = `<div class="checklist">
+      <h4>✓ 화주 안내</h4>
+      <ul>
+        <li>대체 운송 방안 검토 권유</li>
+        <li>배터리 분리 가능 시, 배터리는 UN3480/3481 별도 부킹 검토</li>
+      </ul>
+    </div>`;
+  }
+
+  document.getElementById('result').innerHTML =
+    `<div class="extracted">${chips.join('')}</div>` +
+    verdictHtml + reasoningHtml + checklistHtml;
+}
+</script>
+</body>
+</html>
